@@ -129,6 +129,18 @@ async def handle_seperate_download(client: Client, message: Message):
     await youtube_and_other_download_lazy(client, message, url)
     await ok.edit_text("Thank you for using me ❤")
 
+@Client.on_message(filters.private & filters.forwarded)
+async def handle_forwarded(client, message):
+    try:
+        user_id = message.from_user.id
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        ass = await message.reply(Script.NO_SPAM_TEXT)
+        await asyncio.sleep(10)
+        await ass.delete()
+        return
+    except Exception as lazyerror:
+        print(f"Error occured : {lazyerror}")
+
 
 # ============================================================================
 

@@ -7,11 +7,14 @@ import asyncio
 from youtube_dl import YoutubeDL
 from pyrogram import enums
 from pyrogram.types import Message
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums
 
 from config import *
 from plugins.functions.help_ytdl import get_file_extension_from_url, get_resolution
 YTDL_REGEX = r"^((?:https?:)?\/\/)"
+from asyncio import sleep
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
+from script import Script
 
 @Client.on_callback_query(filters.regex("^ytdl_audio$"))
 async def callback_query_ytdl_audio(_, callback_query):
@@ -103,7 +106,7 @@ async def callback_query_ytdl_video(_, callback_query):
     try:
         # url = callback_query.message.text
         # url = callback_query.message.reply_to_message.text
-        message = callback_query.message
+        
         command_parts = message.text.split(maxsplit=1)  # Split the message into command and arguments
         if len(command_parts) < 2:
             await message.reply("⚠️ Please provide a valid URL after the command. Example: `/spdl <url>`")
@@ -137,14 +140,84 @@ async def callback_query_ytdl_video(_, callback_query):
     await callback_query.message.delete()
 
 
+  
 @Client.on_callback_query()
-async def button(bot, update):
-    if "close" in update.data:
-        await update.message.delete(True)
-    elif "|" in update.data:
-        await youtube_dl_call_back(bot, update)
-    elif "=" in update.data:
-        await ddl_call_back(bot, update)
-    else:
-        await print(f"Else is being called")
+async def cb_handler(client, query: CallbackQuery):
+    data = query.data 
+    if data == "start":
+
+        await query.message.edit_text(
+            text=Script.WELCOME_TEXT.format(query.from_user.mention),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                InlineKeyboardButton('• ᴜᴘᴅᴀᴛᴇꜱ •', url='https://t.me/lazydeveloper'),
+                InlineKeyboardButton('• ꜱᴜᴘᴘᴏʀᴛ •', url='https://t.me/lazydeveloper')
+                ],[
+                InlineKeyboardButton("👑 • ᴏᴡɴᴇʀ • 💎", callback_data='own')
+                ],[
+                InlineKeyboardButton("❤ • ᴅᴇᴠ • 🍟", callback_data='dev')
+                ],[
+                InlineKeyboardButton('• ᴀʙᴏᴜᴛ •', callback_data='about'),
+                InlineKeyboardButton('• ʜᴇʟᴘ •', callback_data='help')
+                ]]),
+                disable_web_page_preview=True,
+                parse_mode=enums.ParseMode.HTML
+            )
+    elif data == "help":
+        await query.message.edit_text(
+            text=Script.HELP_TEXT.format(query.from_user.mention),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                InlineKeyboardButton("🔒 ᴄʟᴏꜱᴇ •", callback_data = "close"),
+                InlineKeyboardButton("◀️ ʙᴀᴄᴋ •", callback_data = "start")
+               ]
+               ]
+            ),
+            disable_web_page_preview=True,
+            parse_mode=enums.ParseMode.HTML
+        )
+    
+    elif data == "about":
+        await query.message.edit_text(
+            text=Script.ABOUT_TXT.format(client.mention),
+            disable_web_page_preview = True,
+            reply_markup=InlineKeyboardMarkup( [[
+                InlineKeyboardButton("🔒 ᴄʟᴏꜱᴇ •", callback_data = "close"),
+                InlineKeyboardButton("◀️ ʙᴀᴄᴋ •", callback_data = "start")
+               ]]
+            ),
+            parse_mode=enums.ParseMode.HTML
+        )
+    elif data == "dev":
+        await query.message.edit_text(
+            text=Script.DEVELOPER_TEXT.format(query.from_user.mention, client.mention, client.mention),
+            reply_markup=InlineKeyboardMarkup( [[
+                InlineKeyboardButton("🔒 ᴄʟᴏꜱᴇ", callback_data = "close"),
+                InlineKeyboardButton("◀️ ʙᴀᴄᴋ", callback_data = "start")
+               ]]
+            ),
+            disable_web_page_preview=True,
+            parse_mode=enums.ParseMode.HTML 
+        )
+    elif data == "own":
+        await query.message.edit_text(
+            text=Script.OWNER_TEXT.format(TEL_USERNAME, TEL_NAME),
+            reply_markup=InlineKeyboardMarkup( [[
+                InlineKeyboardButton("🔒 ᴄʟᴏꜱᴇ", callback_data = "close"),
+                InlineKeyboardButton("◀️ ʙᴀᴄᴋ", callback_data = "start")
+               ]]
+            ),
+            disable_web_page_preview=True,
+            parse_mode=enums.ParseMode.HTML
+        )
+    elif "|" in data:
+        await youtube_dl_call_back(client, query)
+    elif "=" in data:
+        await ddl_call_back(client, query)
+    elif data == "close":
+        try:
+            await query.message.delete()
+            await query.message.reply_to_message.delete()
+        except:
+            await query.message.delete()
 
