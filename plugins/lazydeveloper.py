@@ -16,7 +16,7 @@ from pyrogram import enums
 
 user_tasks = {}
 
-@Client.on_message(filters.private & filters.text & ~filters.command(['start','users','broadcast']))
+@Client.on_message(filters.private & filters.text & ~filters.forwarded & filters.command(['start','users','broadcast']))
 async def handle_incoming_message(client: Client, message: Message):
     try:
         user_id = message.from_user.id  # Get user ID dynamically
@@ -29,29 +29,15 @@ async def handle_incoming_message(client: Client, message: Message):
             user_tasks[user_id] = []
 
         # Check if the user already has 3 active tasks
-        if len(user_tasks[user_id]) >= 2:
-            await message.reply("⏳ You already have 2 active downloads. Please wait for one to finish before adding more.")
+        if len(user_tasks[user_id]) >= MAXIMUM_TASK:
+            sorry_lazy_sms = await message.reply(f"⏳ You already have {MAXIMUM_TASK} active downloads. Please wait for one to finish before adding more.")
+            await asyncio.sleep(5)
+            await sorry_lazy_sms.delete()
             return
         
         url = message.text.strip()
-
-        task = asyncio.create_task(lazydeveloper_handle_url(client, message, url, user_id))
-        print(f"Task created successfully => {task}")
-
-        if task.done():
-            print(f"Task completed")
-        
-        
-        # try:
-        #     while not task.done():  # Keep checking until the task is done
-        #         await asyncio.sleep(3)  # Small delay to avoid tight looping
-                
-        #     # Call the task completion logic once the task is fully done
-        #     await task_done_callback(client, message, user_id, task)
-
-        # except Exception as e:
-        #     print(f"Error in monitor_task_completion: {e}")
-        # task.add_done_callback(lambda t: asyncio.create_task(task_done_callback(client, message, user_id, t)))
+        asyncio.create_task(lazydeveloper_handle_url(client, message, url, user_id))
+        return
     except Exception as lazyerror:
         print(f"error => {lazyerror}")
 
@@ -66,7 +52,7 @@ async def lazydeveloper_handle_url(client, message, url, user_id):
             "twitter.com": download_from_lazy_tiktok_and_x,
             "x.com": download_from_lazy_tiktok_and_x,
             "pin.it": download_pintrest_vid,
-            "pinterest.com": download_pintrest_vid,
+            "pinterest.com": download_from_lazy_tiktok_and_x,
             "facebook.com": download_from_lazy_tiktok_and_x,
             # "youtube.com": download_from_youtube,
             # "youtu.be": download_from_youtube
@@ -80,12 +66,11 @@ async def lazydeveloper_handle_url(client, message, url, user_id):
                 lazytask = asyncio.create_task(handler(client, message, url))
                 user_tasks[user_id].append(lazytask)
                 lazytask.add_done_callback(lambda t: asyncio.create_task(task_done_callback(client, message, user_id, t)))
-                if lazytask.done():
-                    print(f"lazy task completed => {lazytask}")
                 return
     except Exception as e:
         # Handle any errors
-        await message.reply(f"❌ An error occurred: {e}")
+        await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
+        print(f"❌ An error occurred: {e}")
 
 async def task_done_callback(client, message, user_id, t):
     try:

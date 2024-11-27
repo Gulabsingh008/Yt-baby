@@ -107,9 +107,7 @@ async def send_video(client, message: Message, info_dict, video_file, destinatio
     video_id = info_dict.get('id', None)
     thumbnail_file = f"{basename}.{get_file_extension_from_url(thumbnail_url)}"
     download_location = f"{destination_folder}/{video_id}.jpg"
-     
     thumb = download_location if os.path.isfile(download_location) else None
-
     webpage_url = info_dict["webpage_url"]
     title = info_dict["title"] or ""
     bot_username = client.username if client.username else TEL_USERNAME
@@ -151,7 +149,6 @@ async def download_from_lazy_tiktok_and_x(client, message, url):
     try:
         await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         progress_message2 = await message.reply("<i>⚙ ᴘʀᴇᴘᴀʀɪɴɢ\nᴀɴᴀʟʏsɪɴɢ yᴏᴜʀ ᴜʀʟ...</i>")
-        
         TEMP_DOWNLOAD_FOLDER = f"./downloads/{message.from_user.id}/{time.time()}"
         if not os.path.exists(TEMP_DOWNLOAD_FOLDER):
             os.makedirs(TEMP_DOWNLOAD_FOLDER)
@@ -173,16 +170,10 @@ async def download_from_lazy_tiktok_and_x(client, message, url):
             # upload
             video_file = ydl.prepare_filename(info_dict)
             try:
-                print(f"processing vide0 send => {video_file}")
+                # print(f"processing vide0 send => {video_file}")
                 await send_video(client, message, info_dict, video_file, destination_folder, progress_message3)
             except Exception as lazy:
                 print(f"Error in task => {lazy}")
-            
-            # #================= after work done ==============
-            # await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-            # lazydeveloper = await client.send_message(chat_id=message.chat.id, text=f"❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ...")
-            # await asyncio.sleep(100)
-            # await lazydeveloper.delete()
     except Exception as e:
         await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
         print(f"❌ An unexpected error occurred: {e}")
