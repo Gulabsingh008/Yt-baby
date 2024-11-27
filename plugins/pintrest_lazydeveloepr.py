@@ -62,7 +62,8 @@ async def download_pintrest_vid(client, message, url):
             await ms.delete()
             await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
             lazydeveloper = await client.send_message(chat_id=message.chat.id, text=f"❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ...")
-            await asyncio.sleep(100)
+            await asyncio.sleep(30)
+            await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
             await lazydeveloper.delete()
         else:
             await message.reply("Send me the correct link !")

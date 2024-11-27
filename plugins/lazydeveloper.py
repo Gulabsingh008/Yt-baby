@@ -13,23 +13,35 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import re
 from pyrogram import enums
-
+from script import Script
 user_tasks = {}
+LAZY_REGEX = re.compile(
+    pattern=r'(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))(.*)?')
 
-@Client.on_message(filters.private & filters.text & ~filters.forwarded & filters.command(['start','users','broadcast']))
+@Client.on_message(filters.private & filters.text & ~filters.forwarded & ~filters.command(['start','users','broadcast']))
 async def handle_incoming_message(client: Client, message: Message):
     try:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         user_id = message.from_user.id  # Get user ID dynamically
         # Extract the message text and user ID
         if user_id not in ADMIN:
             await client.send_message(chat_id=message.chat.id, text=f"Sorry Sweetheart! cant talk to you \nTake permission from my Lover @LazyDeveloperr")
-        
+        # assuming text sent by user @LazyDeveloperr
+        match = LAZY_REGEX.search(message.text.strip())
+        if not match:
+            # No URL found in the message, ask the user to send a URL
+            await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+            ass = await message.reply(Script.WARNING_TEXT)
+            await asyncio.sleep(6)
+            await ass.delete()
+            return
         # Initialize task list for the user if not already present
         if user_id not in user_tasks:
             user_tasks[user_id] = []
 
         # Check if the user already has 3 active tasks
         if len(user_tasks[user_id]) >= MAXIMUM_TASK:
+            await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
             sorry_lazy_sms = await message.reply(f"⏳ You already have {MAXIMUM_TASK} active downloads. Please wait for one to finish before adding more.")
             await asyncio.sleep(5)
             await sorry_lazy_sms.delete()
@@ -43,6 +55,7 @@ async def handle_incoming_message(client: Client, message: Message):
 
 async def lazydeveloper_handle_url(client, message, url, user_id):
     try:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         ok = await message.reply("🔄 ᴅᴇᴛᴇᴄᴛɪɴɢ ᴜʀʟ ᴛʏᴘᴇ ᴀɴᴅ ᴘʀᴏᴄᴇssɪɴɢ ᴛʜᴇ ᴅᴏᴡɴʟᴏᴀᴅ...")
 
         # Check if the URL contains 'instagram.com'
@@ -60,6 +73,7 @@ async def lazydeveloper_handle_url(client, message, url, user_id):
 
         for platform, handler in PLATFORM_HANDLERS.items():
             if platform in url:
+                await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
                 lazydev = await ok.edit_text(f"Detected {platform} URL!")
                 await lazydev.delete()
                 # Create a task for the handler function
@@ -69,20 +83,24 @@ async def lazydeveloper_handle_url(client, message, url, user_id):
                 return
     except Exception as e:
         # Handle any errors
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
         print(f"❌ An error occurred: {e}")
 
 async def task_done_callback(client, message, user_id, t):
     try:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         if user_id in user_tasks and t in user_tasks[user_id]:
             user_tasks[user_id].remove(t)
 
         # Notify the user
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         workdonemsg = await client.send_message(
             chat_id=message.chat.id,
             text="❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ..."
         )
-        await asyncio.sleep(300)
+        await asyncio.sleep(25)
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         await workdonemsg.delete()
     except KeyError:
         print(f"Task or user ID not found during task cleanup: {t}")

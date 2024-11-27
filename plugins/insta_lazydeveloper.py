@@ -26,10 +26,11 @@ async def download_from_lazy_instagram(client, message, url):
     # Get an instance of Instaloader (assuming this function initializes it)
     L = get_ready_to_work_insta_instance()        
     post = instaloader.Post.from_shortcode(L.context, post_shortcode)
-
+    
+    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
     # Caption handling (ensure the caption does not exceed Telegram's limit)
     bot_username = client.username if client.username else TEL_USERNAME
-    caption_trail = "\n\n\n" + f"ᴡɪᴛʜ ❤ @{bot_username}"
+    caption_trail = "\n" + f"<blockquote>ᴡɪᴛʜ ❤ @{bot_username}</blockuote>"
 
     new_caption = post.caption
     while len(new_caption) + len(caption_trail) > 1024:
@@ -59,21 +60,22 @@ async def download_from_lazy_instagram(client, message, url):
 
         # Send media group
         await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_DOCUMENT)
-        await client.send_media_group(message.chat.id, media_list)
+        await client.send_media_group(message.chat.id, media_list, parse_mode=enums.ParseMode.HTML)
 
     else:
         # Single media handling
         if post.is_video:
             await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_VIDEO)
-            await client.send_video(message.chat.id, post.video_url, caption=new_caption)
+            await client.send_video(message.chat.id, post.video_url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
         else:
             await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
-            await client.send_photo(message.chat.id, post.url, caption=new_caption)
+            await client.send_photo(message.chat.id, post.url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
 
     await progress_message3.delete()
     await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
     lazydeveloper = await client.send_message(chat_id=message.chat.id, text=f"❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ...")
-    await asyncio.sleep(100)
+    await asyncio.sleep(30)
+    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
     await lazydeveloper.delete()
 
 # regex
