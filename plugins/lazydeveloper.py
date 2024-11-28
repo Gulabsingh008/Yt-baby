@@ -75,14 +75,16 @@ async def lazydeveloper_handle_url(client, message, url, user_id):
             if platform in url:
                 await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
                 lazydev = await ok.edit_text(f"Detected {platform} URL!")
-                await lazydev.delete()
                 # Create a task for the handler function
                 lazytask = asyncio.create_task(handler(client, message, url))
                 user_tasks[user_id].append(lazytask)
                 lazytask.add_done_callback(lambda t: asyncio.create_task(task_done_callback(client, message, user_id, t)))
+                await lazydev.delete()
                 return
     except Exception as e:
         # Handle any errors
+        await ok.delete() if ok else None
+        await lazydev.delete() if lazydev else None
         await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
         print(f"❌ An error occurred: {e}")
@@ -99,7 +101,7 @@ async def task_done_callback(client, message, user_id, t):
             chat_id=message.chat.id,
             text="❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ..."
         )
-        await asyncio.sleep(25)
+        await asyncio.sleep(15)
         await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
         await workdonemsg.delete()
     except KeyError:

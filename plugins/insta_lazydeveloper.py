@@ -10,74 +10,99 @@ import asyncio
 # Initialize @LazyDeveloperr Instaloader 
 insta = instaloader.Instaloader()
 from pyrogram import enums
+from instaloader.exceptions import (
+    ConnectionException,
+    PrivateProfileNotFollowedException,
+    LoginRequiredException,
+    BadResponseException,
+    TooManyRequestsException,
+)
+
+async def initiliselazyinsta(Lazy, post_shortcode):
+    post = instaloader.Post.from_shortcode(Lazy.context, post_shortcode)
+    return post
 
 async def download_from_lazy_instagram(client, message, url):
-    # Extract shortcode from Instagram URL (assuming this is a function you implemented)
-    post_shortcode = get_post_or_reel_shortcode_from_link(url)
-    
-    if not post_shortcode:
-        print(f"log:\n\nuser: {message.chat.id}\n\nerror in getting post_shortcode")
-        return  # Post shortcode not found, stop processing
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    
-    progress_message2 = await message.reply("<i>⚙ ᴘʀᴇᴘᴀʀɪɴɢ ᴛᴏ ꜰᴇᴛᴄʜ ᴄᴀᴘᴛɪᴏɴ...</i>")
-    await asyncio.sleep(1)
-    
-    # Get an instance of Instaloader (assuming this function initializes it)
-    L = get_ready_to_work_insta_instance()        
-    post = instaloader.Post.from_shortcode(L.context, post_shortcode)
-    
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    # Caption handling (ensure the caption does not exceed Telegram's limit)
-    bot_username = client.username if client.username else TEL_USERNAME
-    caption_trail = "\n" + f"<blockquote>ᴡɪᴛʜ ❤ @{bot_username}</blockuote>"
+    try:
+        # Extract shortcode from Instagram URL (assuming this is a function you implemented)
+        post_shortcode = get_post_or_reel_shortcode_from_link(url)
+        
+        if not post_shortcode:
+            print(f"log:\n\nuser: {message.chat.id}\n\nerror in getting post_shortcode")
+            return  # Post shortcode not found, stop processing
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        
+        progress_message2 = await message.reply("<i>⚙ ᴘʀᴇᴘᴀʀɪɴɢ ᴛᴏ ꜰᴇᴛᴄʜ ᴄᴀᴘᴛɪᴏɴ...</i>")
+        await asyncio.sleep(1)
+        
+        # Get an instance of Instaloader 
+        L = get_ready_to_work_insta_instance()        
+        lazytask = asyncio.create_task(initiliselazyinsta(L, post_shortcode))
+        post = await lazytask
 
-    new_caption = post.caption
-    while len(new_caption) + len(caption_trail) > 1024:
-        new_caption = new_caption[:-1]  # Trim caption if it's too long
-    new_caption = new_caption + caption_trail  # Add bot username at the end
-     # Initialize media list
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    progress_message3 = await progress_message2.edit_text("<i>⚡ ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ꜰɪʟᴇ ᴛᴏ ᴜᴘʟᴏᴀᴅ ᴏɴ ᴛᴇʟᴇɢʀᴀᴍ...</i>")
-    # await asyncio.sleep(1)
-    
-    media_list = []
-    # Handle sidecars (multiple media in a post)
-    if post.mediacount > 1:
-        sidecars = post.get_sidecar_nodes()
-        for s in sidecars:
-            if s.is_video:
-                url = s.video_url
-                media = InputMediaVideo(url)
-                if not media_list:  # Add caption to the first media
-                    media = InputMediaVideo(url, caption=new_caption)
-            else:
-                url = s.display_url
-                media = InputMediaPhoto(url)
-                if not media_list:  # Add caption to the first media
-                    media = InputMediaPhoto(url, caption=new_caption)
-            media_list.append(media)
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        # Caption handling (ensure the caption does not exceed Telegram's limit)
+        bot_username = client.username if client.username else TEL_USERNAME
+        caption_trail = "\n\n" + f"<blockquote>ᴡɪᴛʜ ❤ @{bot_username}</blockuote>"
 
-        # Send media group
-        await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_DOCUMENT)
-        await client.send_media_group(message.chat.id, media_list, parse_mode=enums.ParseMode.HTML)
+        try:
+            new_caption = post.caption if post.caption else "==========🍟=========="
+        except Exception as lazyerror:
+            print(f"Caption not loaded : {lazyerror}")
+            pass
+        while len(new_caption) + len(caption_trail) > 1024:
+            new_caption = new_caption[:-1]  # Trim caption if it's too long
+        new_caption = new_caption + caption_trail  # Add bot username at the end
+        # Initialize media list
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        await progress_message2.edit("<i>⚡ ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ꜰɪʟᴇ ᴛᴏ ᴜᴘʟᴏᴀᴅ ᴏɴ ᴛᴇʟᴇɢʀᴀᴍ...</i>")
+        # await asyncio.sleep(1)
+        
+        media_list = []
+        # Handle sidecars (multiple media in a post)
+        if post.mediacount > 1:
+            sidecars = post.get_sidecar_nodes()
+            for s in sidecars:
+                if s.is_video:
+                    url = s.video_url
+                    media = InputMediaVideo(url)
+                    if not media_list:  # Add caption to the first media
+                        media = InputMediaVideo(url, caption=new_caption)
+                else:
+                    url = s.display_url
+                    media = InputMediaPhoto(url)
+                    if not media_list:  # Add caption to the first media
+                        media = InputMediaPhoto(url, caption=new_caption)
+                media_list.append(media)
 
-    else:
-        # Single media handling
-        if post.is_video:
-            await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_VIDEO)
-            await client.send_video(message.chat.id, post.video_url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
+            # Send media group
+            await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_DOCUMENT)
+            await client.send_media_group(message.chat.id, media_list, parse_mode=enums.ParseMode.HTML)
+
         else:
-            await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
-            await client.send_photo(message.chat.id, post.url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
+            # Single media handling
+            if post.is_video:
+                await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_VIDEO)
+                await client.send_video(message.chat.id, post.video_url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
+            else:
+                await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
+                await client.send_photo(message.chat.id, post.url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
 
-    await progress_message3.delete()
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    lazydeveloper = await client.send_message(chat_id=message.chat.id, text=f"❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ...")
-    await asyncio.sleep(30)
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    await lazydeveloper.delete()
-
+        await progress_message2.delete()
+    except ConnectionException:
+        await message.edit("🚨 Connection error. Please try again later.")
+    except PrivateProfileNotFollowedException:
+        await message.edit("🔒 Cannot access this profile. It's private, and i don't follow it. Please send me public urls")
+    except LoginRequiredException:
+        await message.edit("🔑 This operation requires login. Please send me public urls")
+    except BadResponseException:
+        await message.edit("⚠️ Instagram returned an unexpected response. Please try again.")
+    except TooManyRequestsException:
+        await message.edit("⏳ Too many requests! Instagram is rate-limiting you. Please wait and try again.")
+    except Exception as lze:
+        await message.edit(f"😕 An unexpected error occurred, Please try again later.")
+        print(f"😕 An unexpected error occurred : {lze}")
+        await progress_message2.delete()
 # regex
 insta_post_or_reel_reg = r'(?:https?://www\.)?instagram\.com\S*?/(p|reel)/([a-zA-Z0-9_-]{11})/?'
 

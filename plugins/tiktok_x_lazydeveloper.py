@@ -164,7 +164,7 @@ async def download_from_lazy_tiktok_and_x(client, message, url):
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-            progress_message3 = await progress_message2.edit_text("<i>⚙ fᴇᴛᴄʜɪɴɢ ʀᴇQᴜɪʀᴇᴅ dᴇᴛᴀɪʟs fʀᴏᴍ yᴏᴜʀ lɪɴᴋ...</i>")
+            await progress_message2.edit("<i>⚙ fᴇᴛᴄʜɪɴɢ ʀᴇQᴜɪʀᴇᴅ dᴇᴛᴀɪʟs fʀᴏᴍ yᴏᴜʀ lɪɴᴋ...</i>")
             info_dict = ydl.extract_info(url, download=False)
             ydl.process_info(info_dict)
             # upload
@@ -175,8 +175,10 @@ async def download_from_lazy_tiktok_and_x(client, message, url):
             except Exception as lazy:
                 print(f"Error in task => {lazy}")
     except Exception as e:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.CANCEL)
         await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
         print(f"❌ An unexpected error occurred: {e}")
+        await progress_message2.delete()
 
         
         
