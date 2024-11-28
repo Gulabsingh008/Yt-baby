@@ -46,8 +46,8 @@ async def handle_incoming_message(client: Client, message: Message):
         message_count = len(user_message_count[user_id])  # Count messages sent in the last second
         
         # Check if the user exceeds the allowed maximum number of messages in 1 second
-        if message_count > MAXIMUM_TASK:
-            await message.reply(f"You've sent {message_count} messages in a short time. Please wait before sending more.")
+        if message_count >= MAXIMUM_TASK:
+            await message.reply(Script.PLUS_SPAM_TEXT.format(MAXIMUM_TASK))
             return
         
         # Append the current message timestamp
