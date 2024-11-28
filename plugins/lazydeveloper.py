@@ -14,7 +14,11 @@ from pyrogram.types import Message
 import re
 from pyrogram import enums
 from script import Script
+import time
+
 user_tasks = {}
+user_message_count = defaultdict(list)
+
 LAZY_REGEX = re.compile(
     pattern=r'(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))(.*)?')
 
@@ -26,6 +30,15 @@ async def handle_incoming_message(client: Client, message: Message):
         # Extract the message text and user ID
         if user_id not in ADMIN:
             await client.send_message(chat_id=message.chat.id, text=f"Sorry Sweetheart! cant talk to you \nTake permission from my Lover @LazyDeveloperr")
+        
+        # handling too many messages for plus messager apps @LazyDveloperr
+        current_time = time.time()
+        user_messages = user_message_count[user_id]
+        message_count = len([timestamp for timestamp in user_messages if current_time - timestamp <= 1])  # Messages sent in last 1 seconds
+        if message_count > MAXIMUM_TASK:
+            await message.reply(f"You've sent {message_count} messages in a short time. Please wait before sending more.")
+            return
+        
         # assuming text sent by user @LazyDeveloperr
         match = LAZY_REGEX.search(message.text.strip())
         if not match:
