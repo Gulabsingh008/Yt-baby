@@ -1,120 +1,338 @@
-import instaloader
-import re
-import os
-import time
+
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import *
 from pyrogram.types import Message, InputMediaPhoto, InputMediaVideo
 import asyncio
 # Initialize @LazyDeveloperr Instaloader 
-insta = instaloader.Instaloader()
+from plugins.insta_lazydeveloper import download_from_lazy_instagram 
+from plugins.tiktok_x_lazydeveloper import download_from_lazy_tiktok_and_x
+from plugins.pintrest_lazydeveloepr import download_pintrest_vid
+from plugins.youtube_downloader_lazydeveloper import youtube_and_other_download_lazy
+from pyrogram import Client, filters
+from pyrogram.types import Message
+import re
 from pyrogram import enums
-from instaloader.exceptions import (
-    ConnectionException,
-    PrivateProfileNotFollowedException,
-    LoginRequiredException,
-    BadResponseException,
-    TooManyRequestsException,
-)
+from script import Script
+import time
+from collections import defaultdict
 
-async def initiliselazyinsta(Lazy, post_shortcode):
-    post = instaloader.Post.from_shortcode(Lazy.context, post_shortcode)
-    return post
+user_tasks = {}
+user_message_count = defaultdict(list)
 
-async def download_from_lazy_instagram(client, message, url):
-    await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-    progress_message2 = await message.reply("<i>⚙ fᴇᴛᴄʜɪɴɢ ʀᴇQᴜɪʀᴇᴅ dᴇᴛᴀɪʟs fʀᴏᴍ yᴏᴜʀ lɪɴᴋ...</i>")
+LAZY_REGEX = re.compile(
+    pattern=r'(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))(.*)?')
+
+@Client.on_message(filters.private & filters.text & ~filters.forwarded & ~filters.command(['start','users','broadcast']))
+async def handle_incoming_message(client: Client, message: Message):
     try:
-        # Extract shortcode from Instagram URL (assuming this is a function you implemented)
-        
-        post_shortcode = get_post_or_reel_shortcode_from_link(url)
-        
-        if not post_shortcode:
-            print(f"log:\n\nuser: {message.chat.id}\n\nerror in getting post_shortcode")
-            await progress_message2.edit("❌ Invalid Instagram link provided.")
-            return  # Post shortcode not found, stop processing
-        
-        await asyncio.sleep(1)
-        
-        # Get an instance of Instaloader 
-        L = get_ready_to_work_insta_instance()        
-        lazytask = asyncio.create_task(initiliselazyinsta(L, post_shortcode))
-        post = await lazytask
         await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-        # Caption handling (ensure the caption does not exceed Telegram's limit)
-        bot_username = client.username if client.username else TEL_USERNAME
-        caption_trail = "\n\n" + f"<blockquote>ᴡɪᴛʜ ❤ @{bot_username}</blockquote>"
-
-        try:
-            new_caption = post.caption if post.caption else "==========🍟=========="
-        except Exception as lazyerror:
-            print(f"Caption not loaded : {lazyerror}")
-            pass
-        while len(new_caption) + len(caption_trail) > 1024:
-            new_caption = new_caption[:-1]  # Trim caption if it's too long
-        new_caption = new_caption + caption_trail  # Add bot username at the end
-        # Initialize media list
-        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
-        await progress_message2.edit("<i>⚡ ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ꜰɪʟᴇ ᴛᴏ ᴜᴘʟᴏᴀᴅ ᴏɴ ᴛᴇʟᴇɢʀᴀᴍ...</i>")
-        # await asyncio.sleep(1)
+        user_id = message.from_user.id  # Get user ID dynamically
+        # Extract the message text and user ID
+        if user_id not in ADMIN:
+            await client.send_message(chat_id=message.chat.id, text=f"Sorry Sweetheart! cant talk to you \nTake permission from my Lover @LazyDeveloperr")
         
-        media_list = []
-        # Handle sidecars (multiple media in a post)
-        if post.mediacount > 1:
-            sidecars = post.get_sidecar_nodes()
-            for s in sidecars:
-                if s.is_video:
-                    url = s.video_url
-                    media = InputMediaVideo(url)
-                    if not media_list:  # Add caption to the first media
-                        media = InputMediaVideo(url, caption=new_caption)
-                else:
-                    url = s.display_url
-                    media = InputMediaPhoto(url)
-                    if not media_list:  # Add caption to the first media
-                        media = InputMediaPhoto(url, caption=new_caption)
-                media_list.append(media)
+        # handling too many messages for plus messager apps @LazyDveloperr
+        current_time = time.time()
+        user_messages = user_message_count[user_id]
+        message_count = len([timestamp for timestamp in user_messages if current_time - timestamp <= 1])  # Messages sent in last 1 seconds
+        if message_count > MAXIMUM_TASK:
+            await message.reply(f"You've sent {message_count} messages in a short time. Please wait before sending more.")
+            return
+        
+        # assuming text sent by user @LazyDeveloperr
+        match = LAZY_REGEX.search(message.text.strip())
+        if not match:
+            # No URL found in the message, ask the user to send a URL
+            await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+            ass = await message.reply(Script.WARNING_TEXT)
+            await asyncio.sleep(6)
+            await ass.delete()
+            return
+        # Initialize task list for the user if not already present
+        if user_id not in user_tasks:
+            user_tasks[user_id] = []
 
-            # Send media group
-            await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_DOCUMENT)
-            await client.send_media_group(message.chat.id, media_list, parse_mode=enums.ParseMode.HTML)
+        # Check if the user already has 3 active tasks
+        if len(user_tasks[user_id]) >= MAXIMUM_TASK:
+            await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+            sorry_lazy_sms = await message.reply(f"⏳ You already have {MAXIMUM_TASK} active downloads. Please wait for one to finish before adding more.")
+            await asyncio.sleep(5)
+            await sorry_lazy_sms.delete()
+            return
+        
+        url = message.text.strip()
+        asyncio.create_task(lazydeveloper_handle_url(client, message, url, user_id))
+        return
+    except Exception as lazyerror:
+        print(f"error => {lazyerror}")
 
-        else:
-            # Single media handling
-            if post.is_video:
-                await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_VIDEO)
-                await client.send_video(message.chat.id, post.video_url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
-            else:
-                await client.send_chat_action(message.chat.id, enums.ChatAction.UPLOAD_PHOTO)
-                await client.send_photo(message.chat.id, post.url, caption=new_caption, parse_mode=enums.ParseMode.HTML)
+async def lazydeveloper_handle_url(client, message, url, user_id):
+    try:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        ok = await message.reply("🔄 ᴅᴇᴛᴇᴄᴛɪɴɢ ᴜʀʟ ᴛʏᴘᴇ ᴀɴᴅ ᴘʀᴏᴄᴇssɪɴɢ ᴛʜᴇ ᴅᴏᴡɴʟᴏᴀᴅ...")
 
-        await progress_message2.delete()
-    except ConnectionException:
-        await progress_message2.edit("🚨 Connection error. Please try again later.")
-    except PrivateProfileNotFollowedException:
-        await progress_message2.edit("🔒 Cannot access this profile. It's private, and i don't follow it. Please send me public urls")
-    except LoginRequiredException:
-        await progress_message2.edit("🔑 This operation requires login. Please send me public urls")
-    except BadResponseException:
-        await progress_message2.edit("⚠️ Instagram returned an unexpected response. Please try again.")
-    except TooManyRequestsException:
-        await progress_message2.edit("⏳ Too many requests! Instagram is rate-limiting you. Please wait and try again.")
-    except Exception as lze:
-        await progress_message2.edit(f"😕 An unexpected error occurred, Please try again later.")
-        print(f"😕 An unexpected error occurred : {lze}")
-        await progress_message2.delete()
+        # Check if the URL contains 'instagram.com'
+        PLATFORM_HANDLERS = {
+            "instagram.com": download_from_lazy_instagram,
+            "tiktok.com": download_from_lazy_tiktok_and_x,
+            "twitter.com": download_from_lazy_tiktok_and_x,
+            "x.com": download_from_lazy_tiktok_and_x,
+            "pin.it": download_pintrest_vid,
+            "pinterest.com": download_from_lazy_tiktok_and_x,
+            "facebook.com": download_from_lazy_tiktok_and_x,
+            # "youtube.com": download_from_youtube,
+            # "youtu.be": download_from_youtube
+        }
 
-# regex
-insta_post_or_reel_reg = r'(?:https?://www\.)?instagram\.com\S*?/(p|reel)/([a-zA-Z0-9_-]{11})/?'
+        for platform, handler in PLATFORM_HANDLERS.items():
+            if platform in url:
+                await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+                lazydev = await ok.edit_text(f"Detected {platform} URL!")
+                # Create a task for the handler function
+                lazytask = asyncio.create_task(handler(client, message, url))
+                user_tasks[user_id].append(lazytask)
+                lazytask.add_done_callback(lambda t: asyncio.create_task(task_done_callback(client, message, user_id, t)))
+                await lazydev.delete()
+                return
+    except Exception as e:
+        # Handle any errors
+        await ok.delete() if ok else None
+        await lazydev.delete() if lazydev else None
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        await client.send_message(message.chat.id, f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ...\nᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ ᴏʀ ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ.")
+        print(f"❌ An error occurred: {e}")
 
-def get_post_or_reel_shortcode_from_link(link):
-    match = re.search(insta_post_or_reel_reg, link)
-    if match:
-        return match.group(2)
-    else:
-        return False
+async def task_done_callback(client, message, user_id, t):
+    try:
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        if user_id in user_tasks and t in user_tasks[user_id]:
+            user_tasks[user_id].remove(t)
 
-def get_ready_to_work_insta_instance():
-    L = instaloader.Instaloader()
-    return L
+        # Notify the user
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        workdonemsg = await client.send_message(
+            chat_id=message.chat.id,
+            text="❤ ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ sʜᴀʀᴇ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ꜰʀɪᴇɴᴅ ᴄɪʀᴄʟᴇ..."
+        )
+        await asyncio.sleep(15)
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        await workdonemsg.delete()
+    except KeyError:
+        print(f"Task or user ID not found during task cleanup: {t}")
+    except Exception as e:
+        print(f"Error in task_done_callback: {e}")
+
+@Client.on_message(filters.private & filters.command(["spdl"]))
+async def handle_seperate_download(client: Client, message: Message):
+    # Extract the text after the command
+    command_parts = message.text.split(maxsplit=1)  # Split the message into command and arguments
+    if len(command_parts) < 2:
+        await message.reply("⚠️ Please provide a valid URL after the command. Example: `/spdl <url>`")
+        return
+    
+    url = command_parts[1].strip()  # Extract the URL part
+    # Optional: Use regex to validate the URL format
+    url_pattern = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+    if not url_pattern.match(url):
+        await message.reply("⚠️ The provided text is not a valid URL. Please check and try again.")
+        return
+
+    # Inform the user about the process
+    ok = await message.reply("🔄 Detecting URL type and processing the download...")
+    
+    # Call your download function
+    await youtube_and_other_download_lazy(client, message, url)
+    await ok.edit_text("Thank you for using me ❤")
+
+@Client.on_message(filters.private & filters.forwarded)
+async def handle_forwarded(client, message):
+    try:
+        user_id = message.from_user.id
+        await client.send_chat_action(message.chat.id, enums.ChatAction.TYPING)
+        ass = await message.reply(Script.NO_SPAM_TEXT)
+        await asyncio.sleep(10)
+        await ass.delete()
+        return
+    except Exception as lazyerror:
+        print(f"Error occured : {lazyerror}")
+
+
+# ============================================================================
+
+# from pyrogram import Client, filters
+# from pyrogram.types import Message
+# from config import *
+# from pyrogram.types import Message, InputMediaPhoto, InputMediaVideo
+# import asyncio
+# # Initialize @LazyDeveloperr Instaloader 
+# from plugins.insta_lazydeveloper import download_from_lazy_instagram 
+# from plugins.tiktok_x_lazydeveloper import download_from_lazy_tiktok_and_x
+# from plugins.pintrest_lazydeveloepr import download_pintrest_vid
+# from plugins.youtube_downloader_lazydeveloper import youtube_and_other_download_lazy
+# from pyrogram import Client, filters
+# from pyrogram.types import Message
+# import re
+# from pyrogram import enums
+
+# @Client.on_message(filters.private & filters.command(["spdl"]))
+# async def handle_seperate_download(client: Client, message: Message):
+#     # Extract the text after the command
+#     command_parts = message.text.split(maxsplit=1)  # Split the message into command and arguments
+#     if len(command_parts) < 2:
+#         await message.reply("⚠️ Please provide a valid URL after the command. Example: `/spdl <url>`")
+#         return
+    
+#     url = command_parts[1].strip()  # Extract the URL part
+#     # Optional: Use regex to validate the URL format
+#     url_pattern = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+#     if not url_pattern.match(url):
+#         await message.reply("⚠️ The provided text is not a valid URL. Please check and try again.")
+#         return
+
+#     # Inform the user about the process
+#     ok = await message.reply("🔄 Detecting URL type and processing the download...")
+    
+#     # Call your download function
+#     await youtube_and_other_download_lazy(client, message, url, ok)
+#     await ok.edit_text("Thank you for using me ❤")
+
+# user_tasks = {}
+
+# # async def handle_task_completion(user_id):
+# #     """Wait for all active tasks to complete before allowing new ones."""
+# #     if user_id in user_tasks:
+# #         tasks = user_tasks[user_id]
+# #         if tasks:
+# #             await asyncio.gather(*tasks)  # Wait for all tasks to finish
+# #             user_tasks[user_id] = []  # Clear tasks after completion
+
+# # Your task completion callback function
+# async def task_done_callback(client, message, user_id, t):
+#     """
+#     This function is called once the task is done to remove it from the user's task list
+#     and send a completion message.
+#     """
+#     try:
+#         # Remove the task from the user's task list
+#         if t in user_tasks[user_id]:
+#             user_tasks[user_id].remove(t)
+        
+#         # Send a message to inform the user that the task is completed
+#         workdonemsg = await client.send_message(
+#             chat_id=message.chat.id,
+#             text="✅ Your task is completed. You can send a new URL now!"
+#         )
+        
+#         # Optionally delete the completion message after some time
+#         await asyncio.sleep(300)
+#         await workdonemsg.delete()
+    
+#     except Exception as e:
+#         print(f"Error in task_done_callback: {e}")
+
+
+# @Client.on_message(filters.private & filters.text & ~filters.command(['start','users','broadcast','spdl']))
+# async def handle_incoming_message(client: Client, message: Message):
+#     try:
+#         user_id = message.from_user.id  # Get user ID dynamically
+#         # Extract the message text and user ID
+#         if user_id not in ADMIN:
+#             await client.send_message(chat_id=message.chat.id, text=f"Sorry Sweetheart! cant talk to you \nTake permission from my Lover @LazyDeveloperr")
+
+#         # Check if the user already has 3 active tasks
+#         if len(user_tasks[user_id]) >= 2:
+#             await message.reply("⏳ You already have 2 active downloads. Please wait for one to finish before adding more.")
+#             return
+
+#         url = message.text.strip()
+
+#         task = asyncio.create_task(lazydeveloper_handle_url(client, message, url, user_id))
+
+#         # Initialize task list for the user if not already present
+#         if user_id not in user_tasks:
+#             user_tasks[user_id] = []
+
+#         user_tasks[user_id].append(task)
+#         # task.add_done_callback(lambda t: user_tasks[user_id].remove(t))
+
+#         # Attach the done callback to remove the task and notify the user upon completion
+#         task.add_done_callback(lambda t: asyncio.create_task(task_done_callback(client, message, user_id, t)))
+#         # return
+
+#         # while not task.done():
+#         #     await asyncio.sleep(3)  # Sleep for 3 seconds before sending the next action
+#         #     await message.reply_chat_action(enums.ChatAction.UPLOAD_DOCUMENT)  # Show the 'upload document' action
+        
+#         # async def task_done_callback(t):
+#         #     user_tasks[user_id].remove(t)  # Remove the task from the user's task list
+#         #     workdonemsg = asyncio.create_task(client.send_message(
+#         #         chat_id=message.chat.id,
+#         #         text="✅ Your task is completed. You can send a new URL now!"
+#         #     ))
+#         #     await asyncio.sleep(300)
+#         #     await workdonemsg.delete()
+
+#     except Exception as lazyerror:
+#         print(lazyerror)
+
+
+# async def lazydeveloper_handle_url(client, message, url, user_id):
+#     try:
+#         ok = await message.reply("🔄 ᴅᴇᴛᴇᴄᴛɪɴɢ ᴜʀʟ ᴛʏᴘᴇ ᴀɴᴅ ᴘʀᴏᴄᴇssɪɴɢ ᴛʜᴇ ᴅᴏᴡɴʟᴏᴀᴅ...")
+
+#         # Check if the URL contains 'instagram.com'
+#         PLATFORM_HANDLERS = {
+#             "instagram.com": download_from_lazy_instagram,
+#             "tiktok.com": download_from_lazy_tiktok_and_x,
+#             "twitter.com": download_from_lazy_tiktok_and_x,
+#             "x.com": download_from_lazy_tiktok_and_x,
+#             "pin.it": download_pintrest_vid,
+#             "pinterest.com": download_pintrest_vid,
+#             "facebook.com": download_from_lazy_tiktok_and_x,
+#             # "youtube.com": download_from_youtube,
+#             # "youtu.be": download_from_youtube
+#         }
+
+#         for platform, handler in PLATFORM_HANDLERS.items():
+#             if platform in url:
+#                 lazydev = await ok.edit_text(f"Detected {platform} URL!")
+#                 await lazydev.delete()
+#                 # Create a task for the handler function
+#                 task = asyncio.create_task(handler(client, message, url))
+#                 # await handler(client, message, url)
+#                 return
+                
+#                 # Create a task and add it to the user's task list
+#                 # user_tasks[user_id].append(task)
+                
+#                 # while not task.done():
+#                 #     await asyncio.sleep(3)  # Sleep for 3 seconds before sending the next action
+#                 #     await message.reply_chat_action(enums.ChatAction.UPLOAD_DOCUMENT)  # Show the 'upload document' action
+
+#                 # When the task finishes, remove it from the user's task list
+#                 # task.add_done_callback(lambda t: user_tasks[user_id].remove(t))                
+#                 # async def task_done_callback(t):
+#                 #     user_tasks[user_id].remove(t)  # Remove the task from the user's task list
+#                 #     workdonemsg = asyncio.create_task(client.send_message(
+#                 #         chat_id=message.chat.id,
+#                 #         text="✅ Your task is completed. You can send a new URL now!"
+#                 #     ))
+#                 #     await asyncio.sleep(300)
+#                 #     await workdonemsg.delete()
+
+#                 # task.add_done_callback(lambda t: user_tasks[user_id].remove(t))
+                
+#                 # return #await task  # Wait for the task to finish before proceeding
+
+#         # for platform, handler in PLATFORM_HANDLERS.items():
+#         #     if platform in url:
+#         #         lazydev = await ok.edit_text(f"Detected {platform} ᴜʀʟ!")
+#         #         await lazydev.delete()
+#         #         await handler(client, message, url)
+#         #         return
+
+#     except Exception as e:
+#         # Handle any errors
+#         await message.reply(f"❌ An error occurred: {e}")
+
