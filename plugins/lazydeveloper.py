@@ -34,13 +34,24 @@ async def handle_incoming_message(client: Client, message: Message):
         if user_id not in ADMIN:
             await client.send_message(chat_id=message.chat.id, text=f"Sorry Sweetheart! cant talk to you \nTake permission from my Lover @LazyDeveloperr")
         
-        # handling too many messages for plus messager apps @LazyDveloperr
+        # Message rate-limiting logic
         current_time = time.time()
+        # Ensure the user has a list of message timestamps initialized
+        if user_id not in user_message_count:
+            user_message_count[user_id] = []
+
+        # Filter out messages older than 1 second
         user_messages = user_message_count[user_id]
-        message_count = len([timestamp for timestamp in user_messages if current_time - timestamp <= 5])  # Messages sent in last 1 seconds
+        user_message_count[user_id] = [timestamp for timestamp in user_messages if current_time - timestamp <= 5]  # Keep only messages within the last second
+        message_count = len(user_message_count[user_id])  # Count messages sent in the last second
+        
+        # Check if the user exceeds the allowed maximum number of messages in 1 second
         if message_count > MAXIMUM_TASK:
             await message.reply(f"You've sent {message_count} messages in a short time. Please wait before sending more.")
             return
+        
+        # Append the current message timestamp
+        user_message_count[user_id].append(current_time)
         
         # assuming text sent by user @LazyDeveloperr
         match = LAZY_REGEX.search(message.text.strip())
