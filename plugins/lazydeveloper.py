@@ -37,7 +37,7 @@ async def handle_incoming_message(client: Client, message: Message):
         # handling too many messages for plus messager apps @LazyDveloperr
         current_time = time.time()
         user_messages = user_message_count[user_id]
-        message_count = len([timestamp for timestamp in user_messages if current_time - timestamp <= 1])  # Messages sent in last 1 seconds
+        message_count = len([timestamp for timestamp in user_messages if current_time - timestamp <= 5])  # Messages sent in last 1 seconds
         if message_count > MAXIMUM_TASK:
             await message.reply(f"You've sent {message_count} messages in a short time. Please wait before sending more.")
             return
