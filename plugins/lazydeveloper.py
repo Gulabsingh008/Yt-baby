@@ -15,9 +15,12 @@ import re
 from pyrogram import enums
 from script import Script
 import time
+from collections import defaultdict
 
 user_tasks = {}
+# user_message_count = {}
 user_message_count = defaultdict(list)
+
 
 LAZY_REGEX = re.compile(
     pattern=r'(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))(.*)?')
