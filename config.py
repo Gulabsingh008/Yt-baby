@@ -47,7 +47,7 @@ TMPFILE_PATH = os.getenv("TMPFILE_PATH","downloads")
 CAPTION_URL_LENGTH_LIMIT = 150
 IPv6 = os.getenv("IPv6", False)
 
-ARCHIVE_ID = int(os.environ.get("ARCHIVE_ID", ""))
+ARCHIVE_ID = int(os.environ.get("ARCHIVE_ID", "0"))
 TG_PREMIUM_MAX_SIZE = 4000 * 1024 * 1024
 TG_NORMAL_MAX_SIZE = 2000 * 1024 * 1024
 
