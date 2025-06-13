@@ -12,27 +12,27 @@ API_HASH = os.environ.get("API_HASH", "7e24008e8ec33a397155b6a9d618497b")
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "6396913711:AAFJpA3eMFa1Nzo9aHVGsuPys-mSocXemUY") 
 
-FORCE_SUB = os.environ.get("FORCE_SUB", "-1001640719273") 
+FORCE_SUB = os.environ.get("FORCE_SUB", "-1002434246651") 
 
 DB_NAME = os.environ.get("DB_NAME","Cluster0Rename")     
 
-DB_URL = os.environ.get("DB_URL","mongodb+srv://gill1322:gill1322@cluster0rename.x8jiptm.mongodb.net/?retryWrites=true&w=majority")
+DB_URL = os.environ.get("DB_URL","")
  
 FLOOD = int(os.environ.get("FLOOD", "10"))
 
 START_PIC = os.environ.get("START_PIC", "")
 
-ADMIN = [int(admin) if id_pattern.search(admin) else admin for admin in os.environ.get('ADMIN', '1166670205').split()]
+ADMIN = [int(admin) if id_pattern.search(admin) else admin for admin in os.environ.get('ADMIN', '7170452349').split()]
 
 # Bot_Username = "@LazyPrincessXBOT"
-BOT_USERNAME = os.environ.get("BOT_USERNAME", "@FileRenamesRobot")
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "@Zxvideo_leech_bot")
 
 PORT = os.environ.get('PORT', '8080')
 
 #force sub channel id, if you want enable force sub
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", ""))
-FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", ""))
-FORCE_SUB_CHANNEL3 = int(os.environ.get("FORCE_SUB_CHANNEL3", ""))
+FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "0"))
+FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", "0"))
+FORCE_SUB_CHANNEL3 = int(os.environ.get("FORCE_SUB_CHANNEL3", "0"))
 
 TEL_USERNAME = os.environ.get("TEL_USERNAME", "yash")
 TEL_NAME = os.environ.get("TEL_NAME", "👑Yash Goyal👑")
