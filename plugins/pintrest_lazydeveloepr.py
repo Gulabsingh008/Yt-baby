@@ -29,14 +29,11 @@ def expand_url(short_url):
 
 async def lazy_get_download_url(link):
     # Make request to website 
-    post_request = requests.post('https://www.expertsphp.com/download.php', data={'url': link})
-
-    # Get content from post request
-    request_content = post_request.content
-    str_request_content = str(request_content, 'utf-8')
-    download_url = pq(str_request_content)('table.table-condensed')('tbody')('td')('a').attr('href')
-    print(download_url)
-    return download_url
+      response = requests.post("http://127.0.0.1:5000/pinterest", json={"url": pinterest_url})
+      data = response.json()
+      if data["status"] == "success":
+          download_link = data["download_url"]
+          type = data["type"]
 
 async def download_pintrest_vid(client, message, url):
     try:
